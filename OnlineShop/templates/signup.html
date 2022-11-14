@@ -1,0 +1,125 @@
+<html>
+<head>
+  <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
+  <link rel='icon' href="{{url_for('static', filename='logo.png')}}">
+</head>
+<body>
+  <div class="sticky">
+    <h1>OnLineShop</h1>
+  </div>
+  <div class="nav">
+    <p><a href="/">Home</a> > <a href="">Create Account</a></p>
+  </div>
+  {% if not validate %}
+    <p>Sorry! You haven't met requirements for one or more fields!</p>
+  {% endif %}
+
+  {% if not ok %}
+    <p>Sorry! Account with provided email already exists. Please enter another email</p>
+  {% endif %}
+  <form action="" method="POST" onsubmit="return checkEqual()">
+    <h2>Create New Account:</h2>
+    <table>
+    <tr>
+      <td>TYPE OF ACCOUNT: </td>
+      {% if not type %}
+        <td>
+          <input type="radio" value="Customer" name="type" checked>Customer &nbsp &nbsp <input type="radio" value="Seller" name="type">Seller
+        </td>
+      {% else %}
+        <td>
+          <input type="radio" value="Customer" name="type" checked>Customer &nbsp &nbsp <input type="radio" value="Seller" name="type">Seller    Somehow type of account was wrong
+        </td>
+      {% endif %}
+
+    </tr>
+    <tr>
+      {% if not name %}
+        <td>NAME :</td><td><input type="text" name="name" title="Must contain only a-z and A-Z characters!"></td>
+      {% else %}
+        <td>NAME :</td><td><input type="text" name="name" title="Must contain only a-z and A-Z characters!" placeholder="Name is wrong!"></td>
+      {% endif %}
+
+    </tr>
+    <tr>
+      {%if not email %}
+        <td>EMAIL :</td><td><input type="email" name="email" required></td>
+      {% else %}
+        <td>EMAIL :</td><td><input type="email" name="email" placeholder="Email was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {%if not phone %}
+        <td>PHONE :</td><td><input type="tel" name="phone" title="Must be 9 digit phone number, without country code"></td>
+      {% else %}
+        <td>PHONE :</td><td><input type="tel" name="phone" title="Must be 9 digit phone number, without country code" placeholder="Phone was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      <td><b>ADDRESS:</b></td>
+    </tr>
+    <tr>
+      {% if not area %}
+        <td>LANDMARK/AREA:</td><td><input type="text" minlength="3" name="area" required></td>
+      {% else %}
+        <td>LANDMARK/AREA:</td><td><input type="text" minlength="3" name="area" placeholder="Area was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {% if not locality %}
+        <td>LOCALITY :</td><td><input type="text" minlength="3" name="locality" required></td>
+      {% else %}
+        <td>LOCALITY :</td><td><input type="text" minlength="3" name="locality" placeholder="Locality was wrong!" required></td>
+      {% endif %}
+
+    </tr>
+    <tr>
+      {% if not city %}
+        <td>CITY :</td><td><input type="text" minlength="3" name="city" required></td>
+      {% else %}
+        <td>CITY :</td><td><input type="text" minlength="3" name="city" placeholder="City was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {% if not state %}
+        <td>STATE :</td><td><input type="text" minlength="3" name="state" required></td>
+      {% else %}
+        <td>STATE :</td><td><input type="text" minlength="3" name="state" placeholder="State was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {% if not country %}
+        <td>COUNTRY :</td><td><input type="text" minlength="3" name="country" required></td>
+      {% else %}
+        <td>COUNTRY :</td><td><input type="text" minlength="3" name="country" placeholder="Country was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {% if not zip %}
+        <td>ZIPCODE :</td><td><input type="text" minlength="3" maxlength="7" name="zip" required pattern="^\d{1,6}(-\d{1,6})?$"></td>
+      {% else %}
+        <td>ZIPCODE :</td><td><input type="text" minlength="3" maxlength="7" name="zip"  placeholder="Zipcode was wrong!" required pattern="^\d{1,6}(-\d{1,6})?$"></td>
+      {% endif %}
+
+    </tr>
+    <tr>
+      {% if not password and not miss %}
+        <td>ENTER PASSWORD :</td><td><input type="password" minlength="8" name="password" title="Must be at least 8 characters!" required></td>
+      {% else %}
+        <td>ENTER PASSWORD :</td><td><input type="password" minlength="8" name="password" title="Must be at least 8 characters!" placeholder="Password was wrong!" required></td>
+      {% endif %}
+    </tr>
+    <tr>
+      {% if not cnfrm_psswd and not miss %}
+        <td>RE-ENTER PASSWORD :</td><td><input type="password" minlength="8" name="cnfrm_psswd" title="Must be same as password above" required></td>
+      {% else %}
+        <td>RE-ENTER PASSWORD :</td><td><input type="password" minlength="8" name="cnfrm_psswd" title="Must be same as password above" placeholder="Re-entered password was wrong!" required></td>
+      {% endif %}
+    </tr>
+    </table>
+    <p><input type="submit" value="SUBMIT" ></p>
+    <script type="text/javascript" src="{{url_for('static', filename='main.js')}}" ></script>
+  </form>
+</body>
+</html>
