@@ -1,7 +1,7 @@
 import flask
 from flask import Flask, render_template, request, url_for, redirect, abort, session
 from flask_session import Session
-from OnlineShop.dbaccess import *
+from shopify4.dbaccess import *
 import os
 import FlaskCerberus
 
