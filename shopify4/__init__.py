@@ -11,7 +11,8 @@ sess = Session()
 blocked_ip=[]
 
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    #SESSION_COOKIE_SECURE=True,
+    #bez httpsa ta opcja nie ma sensu i powoduje brak dostepu z public ip
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=6000,
@@ -22,7 +23,7 @@ canary = False
 
 @app.after_request
 def add_security_headers(resp):
-    resp.headers['Content-Security-Policy']="default-src \'self\' \'nonce-i5gBaAlEf3G2GnOLfGA\' ;style-src-elem \'self\' fonts.googleapis.com; font-src fonts.googleapis.com fonts.gstatic.com "
+    resp.headers['Content-Security-Policy']="default-src \'self\' ;style-src-elem \'self\' fonts.googleapis.com; font-src fonts.googleapis.com fonts.gstatic.com "
     resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
     resp.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     resp.headers['X-Content-Type-Options'] = 'nosniff'
@@ -264,11 +265,12 @@ def change_password():
         old_psswd = request.form["old_psswd"]
         new_psswd = request.form["new_psswd"]
         cnfrm_psswd = request.form["cnfrm_psswd"]
-        check = check_psswd(old_psswd, userid, type)
+        email= request.form["email"]
+        check = check_psswd(old_psswd, userid, type,email)
         if check:
             equal = (new_psswd == cnfrm_psswd)
             if equal:
-                set_psswd(new_psswd, userid, type)
+                set_psswd(new_psswd, userid, type, email)
                 return redirect(url_for('home'))
     return render_template("change_password.html", check=check, equal=equal)
 

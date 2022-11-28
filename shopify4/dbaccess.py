@@ -1,11 +1,14 @@
 import sqlite3
 import hashlib
 
-salt="$&"
+salt = "$&"
 
-def hashpass(password):
-    password=str(salt + password + salt).encode()
-    hashed= hashlib.sha3_512(password)
+
+def hashpass(password, email):
+    password = str(salt + password + salt + email).encode()
+    hashed = hashlib.sha3_512(password)
+    for i in range(5000):
+        hashed = hashlib.sha3_512(str(hashed.hexdigest()).encode())
     return hashed.hexdigest()
 
 
@@ -16,8 +19,9 @@ def gen_custID():
     conn.commit()
     custnum = str([i for i in cur.execute("SELECT custnum FROM metadata")][0][0])
     conn.close()
-    id = "CID"+"0"*(7-len(custnum))+custnum
+    id = "CID" + "0" * (7 - len(custnum)) + custnum
     return id
+
 
 def gen_sellID():
     conn = sqlite3.connect("shopify4/onlineshop.db")
@@ -26,8 +30,9 @@ def gen_sellID():
     conn.commit()
     sellnum = str([i for i in cur.execute("SELECT sellnum FROM metadata")][0][0])
     conn.close()
-    id = "SID"+"0"*(7-len(sellnum))+sellnum
+    id = "SID" + "0" * (7 - len(sellnum)) + sellnum
     return id
+
 
 def gen_prodID():
     conn = sqlite3.connect("shopify4/onlineshop.db")
@@ -36,8 +41,9 @@ def gen_prodID():
     conn.commit()
     prodnum = str([i for i in cur.execute("SELECT prodnum FROM metadata")][0][0])
     conn.close()
-    id = "PID"+"0"*(7-len(prodnum))+prodnum
+    id = "PID" + "0" * (7 - len(prodnum)) + prodnum
     return id
+
 
 def gen_orderID():
     conn = sqlite3.connect("shopify4/onlineshop.db")
@@ -46,125 +52,141 @@ def gen_orderID():
     conn.commit()
     ordernum = str([i for i in cur.execute("SELECT ordernum FROM metadata")][0][0])
     conn.close()
-    id = "OID"+"0"*(7-len(ordernum))+ ordernum
+    id = "OID" + "0" * (7 - len(ordernum)) + ordernum
     return id
+
 
 def add_user(data):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
     email = data["email"]
-    if data['type']=="Customer":
+    if data['type'] == "Customer":
         a = cur.execute("SELECT * FROM customer WHERE email=?", (email,))
-    elif data['type']=="Seller":
+    elif data['type'] == "Seller":
         a = cur.execute("SELECT * FROM seller WHERE email=?", (email,))
-    if len(list(a))!=0:
+    if len(list(a)) != 0:
         return False
-    tup = ( data["name"],
-            data["email"],
-            data["phone"],
-            data["area"],
-            data["locality"],
-            data["city"],
-            data["state"],
-            data["country"],
-            data["zip"],
-            hashpass(data["password"]))
-    if data['type']=="Customer":
-        cur.execute("INSERT INTO customer VALUES (?,?,?,?,?,?,?,?,?,?,?)",(gen_custID(), *tup))
-    elif data['type']=="Seller":
+    tup = (data["name"],
+           data["email"],
+           data["phone"],
+           data["area"],
+           data["locality"],
+           data["city"],
+           data["state"],
+           data["country"],
+           data["zip"],
+           hashpass(data["password"], data["email"]))
+    if data['type'] == "Customer":
+        cur.execute("INSERT INTO customer VALUES (?,?,?,?,?,?,?,?,?,?,?)", (gen_custID(), *tup))
+    elif data['type'] == "Seller":
         cur.execute("INSERT INTO seller VALUES (?,?,?,?,?,?,?,?,?,?,?)", (gen_sellID(), *tup))
     conn.commit()
     conn.close()
     return True
+
 
 def auth_user(data):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
     type = data["type"]
     email = data["email"]
-    password = hashpass(data["password"])
-    if type=="Customer":
+    password = hashpass(data["password"], data["email"])
+    if type == "Customer":
         a = cur.execute("SELECT custID, name FROM customer WHERE email=? AND password=?", (email, password))
-    elif type=="Seller":
+    elif type == "Seller":
         a = cur.execute("SELECT sellID, name FROM seller WHERE email=? AND password=?", (email, password))
     a = list(a)
     conn.close()
-    if len(a)==0:
+    if len(a) == 0:
         return False
     return a[0]
+
 
 def fetch_details(userid, type):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    if type=="Customer":
+    if type == "Customer":
         a = cur.execute("SELECT * FROM customer WHERE custID=?", (userid,))
         a = list(a)
         b = []
-    elif type=="Seller":
+    elif type == "Seller":
         a = cur.execute("SELECT * FROM seller WHERE sellID=?", (userid,))
         a = list(a)
         b = cur.execute("SELECT DISTINCT(category) from product WHERE sellID=?", (userid,))
-        b = [i[0] for i in b ]
+        b = [i[0] for i in b]
     conn.close()
     return a, b
+
 
 def search_users(search, srch_type):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
-    search = "%"+search+"%"
-    if srch_type=="Customer":
-        res = cur.execute("SELECT custID, name, email, phone, area, locality, city, state, country, zipcode FROM customer WHERE LOWER(name) like ?", (search,))
-    elif srch_type=="Seller":
-        res = cur.execute("SELECT sellID, name, email, phone, area, locality, city, state, country, zipcode FROM seller WHERE LOWER(name) like ?", (search,))
-    res = [i for i in res ]
+    search = "%" + search + "%"
+    if srch_type == "Customer":
+        res = cur.execute(
+            "SELECT custID, name, email, phone, area, locality, city, state, country, zipcode FROM customer WHERE LOWER(name) like ?",
+            (search,))
+    elif srch_type == "Seller":
+        res = cur.execute(
+            "SELECT sellID, name, email, phone, area, locality, city, state, country, zipcode FROM seller WHERE LOWER(name) like ?",
+            (search,))
+    res = [i for i in res]
     conn.close()
     return res
+
 
 def update_details(data, userid, type):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    if type=="Customer":
-        cur.execute("UPDATE customer SET phone=?, area=?, locality=?, city=?, state=?, country=?, zipcode=? where custID=?", (data["phone"],
-                    data["area"],
-                    data["locality"],
-                    data["city"],
-                    data["state"],
-                    data["country"],
-                    data["zip"],
-                    userid))
-    elif type=="Seller":
-        cur.execute("UPDATE seller SET phone=?, area=?, locality=?, city=?, state=?, country=?, zipcode=? where sellID=?", (data["phone"],
-                    data["area"],
-                    data["locality"],
-                    data["city"],
-                    data["state"],
-                    data["country"],
-                    data["zip"],
-                    userid))
+    if type == "Customer":
+        cur.execute(
+            "UPDATE customer SET phone=?, area=?, locality=?, city=?, state=?, country=?, zipcode=? where custID=?",
+            (data["phone"],
+             data["area"],
+             data["locality"],
+             data["city"],
+             data["state"],
+             data["country"],
+             data["zip"],
+             userid))
+    elif type == "Seller":
+        cur.execute(
+            "UPDATE seller SET phone=?, area=?, locality=?, city=?, state=?, country=?, zipcode=? where sellID=?",
+            (data["phone"],
+             data["area"],
+             data["locality"],
+             data["city"],
+             data["state"],
+             data["country"],
+             data["zip"],
+             userid))
     conn.commit()
     conn.close()
 
-def check_psswd(psswd, userid, type):
+
+def check_psswd(psswd, userid, type, email):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    if type=="Customer":
+    if type == "Customer":
         a = cur.execute("SELECT password FROM customer WHERE custID=?", (userid,))
-    elif type=="Seller":
+    elif type == "Seller":
         a = cur.execute("SELECT password FROM seller WHERE sellID=?", (userid,))
     real_psswd = list(a)[0][0]
     conn.close()
-    return hashpass(psswd) == real_psswd
+    return hashpass(psswd, email) == real_psswd
 
-def set_psswd(psswd, userid, type):
-    psswd=hashpass(psswd)
+
+def set_psswd(psswd, userid, type, email):
+    psswd = hashpass(psswd, email)
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    if type=="Customer":
+    if type == "Customer":
         a = cur.execute("UPDATE customer SET password=? WHERE custID=?", (psswd, userid))
-    elif type=="Seller":
+    elif type == "Seller":
         a = cur.execute("UPDATE seller SET password=? WHERE sellID=?", (psswd, userid))
     conn.commit()
     conn.close()
+
 
 def add_prod(sellID, data):
     conn = sqlite3.connect("shopify4/onlineshop.db")
@@ -182,6 +204,7 @@ def add_prod(sellID, data):
     conn.commit()
     conn.close()
 
+
 def get_categories(sellID):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
@@ -190,16 +213,17 @@ def get_categories(sellID):
     conn.close()
     return categories
 
+
 def search_myproduct(sellID, srchBy, category, keyword):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    keyword = ['%'+i+'%' for i in keyword.split()]
-    if len(keyword)==0: keyword.append('%%')
-    if srchBy=="by category":
+    keyword = ['%' + i + '%' for i in keyword.split()]
+    if len(keyword) == 0: keyword.append('%%')
+    if srchBy == "by category":
         a = cur.execute("""SELECT prodID, name, quantity, category, cost_price
-                        FROM product WHERE category=? AND sellID=? """,(category, sellID))
+                        FROM product WHERE category=? AND sellID=? """, (category, sellID))
         res = [i for i in a]
-    elif srchBy=="by keyword":
+    elif srchBy == "by keyword":
         res = []
         for word in keyword:
             a = cur.execute("""SELECT prodID, name, quantity, category, cost_price
@@ -208,7 +232,7 @@ def search_myproduct(sellID, srchBy, category, keyword):
                             (word, word, word, sellID))
             res += list(a)
         res = list(set(res))
-    elif srchBy=="both":
+    elif srchBy == "both":
         res = []
         for word in keyword:
             a = cur.execute("""SELECT prodID, name, quantity, category, cost_price
@@ -220,6 +244,7 @@ def search_myproduct(sellID, srchBy, category, keyword):
     conn.close()
     return res
 
+
 def get_product_info(id):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -228,9 +253,10 @@ def get_product_info(id):
                     WHERE p.sellID=s.sellID AND p.prodID=? """, (id,))
     res = [i for i in a]
     conn.close()
-    if len(res)==0:
+    if len(res) == 0:
         return False, res
     return True, res[0]
+
 
 def update_product(data, id):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -238,7 +264,7 @@ def update_product(data, id):
     cur.execute("""UPDATE product
     SET name=?, quantity=?, category=?, cost_price=?,
     sell_price=(SELECT profit_rate from metadata)*?, description=?
-    where prodID=?""",( data['name'],
+    where prodID=?""", (data['name'],
                         data['qty'],
                         data['category'],
                         data['price'],
@@ -248,16 +274,17 @@ def update_product(data, id):
     conn.commit()
     conn.close()
 
+
 def search_products(srchBy, category, keyword):
     conn = sqlite3.connect("shopify4/onlineshop.db")
     cur = conn.cursor()
-    keyword = ['%'+i+'%' for i in keyword.split()]
-    if len(keyword)==0: keyword.append('%%')
-    if srchBy=="by category":
+    keyword = ['%' + i + '%' for i in keyword.split()]
+    if len(keyword) == 0: keyword.append('%%')
+    if srchBy == "by category":
         a = cur.execute("""SELECT prodID, name, category, sell_price
-                        FROM product WHERE category=? AND quantity!=0 """,(category,))
+                        FROM product WHERE category=? AND quantity!=0 """, (category,))
         res = [i for i in a]
-    elif srchBy=="by keyword":
+    elif srchBy == "by keyword":
         res = []
         for word in keyword:
             a = cur.execute("""SELECT prodID, name, category, sell_price
@@ -266,7 +293,7 @@ def search_products(srchBy, category, keyword):
                             (word, word, word))
             res += list(a)
         res = list(set(res))
-    elif srchBy=="both":
+    elif srchBy == "both":
         res = []
         for word in keyword:
             a = cur.execute("""SELECT prodID, name, category, sell_price
@@ -278,6 +305,7 @@ def search_products(srchBy, category, keyword):
     conn.close()
     return res
 
+
 def get_seller_products(sellID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -285,6 +313,7 @@ def get_seller_products(sellID):
     res = [i for i in a]
     conn.close()
     return res
+
 
 def place_order(prodID, custID, qty):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -295,6 +324,7 @@ def place_order(prodID, custID, qty):
                     FROM product WHERE prodID=? """, (orderID, custID, prodID, qty, qty, qty, prodID))
     conn.commit()
     conn.close()
+
 
 def cust_orders(custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -307,6 +337,7 @@ def cust_orders(custID):
     conn.close()
     return res
 
+
 def sell_orders(sellID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -318,6 +349,7 @@ def sell_orders(sellID):
     conn.close()
     return res
 
+
 def get_order_details(orderID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -327,16 +359,18 @@ def get_order_details(orderID):
     conn.close()
     return res
 
+
 def change_order_status(orderID, new_status):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
     cur.execute("UPDATE orders SET status=? WHERE orderID=? ", (new_status, orderID))
-    if new_status=='DISPACHED':
+    if new_status == 'DISPACHED':
         cur.execute("""UPDATE product SET
                      quantity=quantity-(SELECT quantity FROM orders WHERE orderID=? )
                      WHERE prodID=(SELECT prodID FROM orders WHERE orderID=? )""", (orderID, orderID))
     conn.commit()
     conn.close()
+
 
 def cust_purchases(custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -349,6 +383,7 @@ def cust_purchases(custID):
     conn.close()
     return res
 
+
 def sell_sales(sellID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -360,12 +395,14 @@ def sell_sales(sellID):
     conn.close()
     return res
 
+
 def add_product_to_cart(prodID, custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
     cur.execute("""INSERT INTO cart VALUES (?,?,1) """, (custID, prodID))
     conn.commit()
     conn.close()
+
 
 def get_cart(custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -378,6 +415,7 @@ def get_cart(custID):
     conn.close()
     return res
 
+
 def update_cart(custID, qty):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
@@ -386,6 +424,7 @@ def update_cart(custID, qty):
         cur.execute("INSERT INTO cart VALUES (?,?,?)", (custID, prodID, qty[prodID]))
     conn.commit()
     conn.close()
+
 
 def cart_purchase(custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
@@ -402,15 +441,16 @@ def cart_purchase(custID):
         conn.commit()
     conn.close()
 
+
 def empty_cart(custID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
     cur.execute("DELETE FROM cart WHERE custID=?", (custID,))
     conn.commit()
 
+
 def remove_from_cart(custID, prodID):
     conn = sqlite3.connect('shopify4/onlineshop.db')
     cur = conn.cursor()
     cur.execute("DELETE FROM cart WHERE custID=? AND prodID=?", (custID, prodID))
     conn.commit()
-    
